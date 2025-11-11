@@ -89,7 +89,7 @@ Oltre al layer di networking, l'architettura include un backend dedicato con pi�
 - autenticazione e tracciamento degli utenti, utile per assegnare la proprietà dei metadati modificabili
 - persistenza dei dati di sessione e dei salvataggi, con struttura coerente al modello a snapshot
 
-Il backend è stato progettato per essere interamente containerizzato.  La struttura e l'organizzazione delle API del backend sono documentate in dettaglio nella [specifica OpenAPI](assets/open-api/v3.html), consultabile in formato navigabile.
+Il backend è stato progettato per essere interamente containerizzato.  La struttura e l'organizzazione delle API del backend sono documentate in dettaglio nella [specifica OpenAPI](https://s-pittalis.github.io/Interview.SystemDesign.InteractiveMapVR/v3.html), consultabile in formato navigabile.
 L'intero sistema (FastAPI, PostgreSQL, Prometheus, Grafana, e servizi accessori) è orchestrato tramite Docker Compose, soluzione che offre due vantaggi strategici:
 1. può essere distribuito on-prem, mantenendo la persistenza dei dati e le metriche a latenza minima
 2. può essere facilmente spostato su un cloud provider, trasferendo eventuali costi operativi al cliente senza modifiche strutturali
@@ -316,7 +316,7 @@ sequenceDiagram
 Questa architettura rappresenta l'alternativa alla precedente soluzione in Shared Mode.  
 In questo caso viene adottata la modalità Photon Fusion Server Mode, configurata in ambiente on-premise per mantenere l'intera simulazione e la persistenza dei dati all'interno della rete locale del cliente.
 
-Con Server Mode, il ruolo di autorità runtime viene spostato da uno dei visori a un server dedicato, eliminando così la dipendenza da un peer leader.  La struttura e l'organizzazione delle API del backend sono documentate in dettaglio nella [specifica OpenAPI](assets/open-api/v2.html), consultabile in formato navigabile.
+Con Server Mode, il ruolo di autorità runtime viene spostato da uno dei visori a un server dedicato, eliminando così la dipendenza da un peer leader.  La struttura e l'organizzazione delle API del backend sono documentate in dettaglio nella [specifica OpenAPI](https://s-pittalis.github.io/Interview.SystemDesign.InteractiveMapVR/v2.html), consultabile in formato navigabile.
 
 L'edge server esegue Photon, il backend FastAPI, il database PostgreSQL, i servizi di osservabilità (Prometheus e Grafana) e un gateway VPN per la manutenzione remota.  
 Tutti i componenti sono orchestrati tramite Docker Compose su una singola macchina, all'interno della stessa LAN dei visori.
