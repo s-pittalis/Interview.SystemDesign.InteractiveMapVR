@@ -27,10 +27,10 @@ Entrambe le soluzioni vengono descritte nel dettaglio nelle sezioni successive, 
 ## Photon Shared Mode
 
 ### System Context Diagram
-<img alt="Shared Mode C1" src="assets/diagrams/v3/export/c1/structurizr-interactive-forest-vr-v3-context.svg" width="1024"/>
+<img alt="Shared Mode C1" src="assets/diagrams/v3/export/c1/structurizr-interactive-forest-vr-v3-context.svg" width="10240"/>
 
 ### Container Diagram
-<img alt="Shared Mode C2" src="assets/diagrams/v3/export/c2/structurizr-interactive-forest-vr-v3-containers.svg" width="1024"/>
+<img alt="Shared Mode C2" src="assets/diagrams/v3/export/c2/structurizr-interactive-forest-vr-v3-containers.svg" width="10240"/>
 
 ### Descrizione
 In questa soluzione si è scelto di utilizzare **Photon Fusion** come strumento principale per la gestione della sincronizzazione e dello scambio dati tra i visori.  
@@ -78,208 +78,190 @@ Ogni diagramma rappresenta uno scenario tipico di interazione tra i componenti p
 Questo flusso descrive la fase iniziale in cui un utente autenticato crea una nuova stanza su Photon.  
 Il client effettua il login, richiede la creazione della sessione al backend, e successivamente il backend registra le informazioni nel database in seguito alla notifica `game-created` inviata da Photon.
 
-```plantuml
-@startuml
-actor User as U
-participant Client as C
-participant Photon as P
-participant Backend as B
-participant DB as DB
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant C as Client
+    participant P as Photon
+    participant B as Backend
+    participant DB as DB
 
-U -> C: Avvio applicazione / Login
-C -> B: POST /auth/login
-B --> C: 200 JWT
+    U->>C: Avvio applicazione / Login
+    C->>B: POST /auth/login
+    B-->>C: 200 JWT
 
-U -> C: Crea nuova sessione
-C -> P: CreateRoom(room_id)
-P -> B: webhook game-created
-B -> DB: INSERT sessions (state=active, participants=[creator], leader_id=creator)
-DB --> B: OK
-B --> P: 204 No Content
-
-C -> P: Pubblica proprietà Room (anchor_uuid, map_ref, ecc.)
-note over C,P: Photon gestisce la stanza Shared Mode in cloud.
-@enduml
+    U->>C: Crea nuova sessione
+    C->>P: CreateRoom(room_id)
+    P->>B: webhook game-created
+    B->>DB: INSERT session (state=active, participants=[creator], leader_id=creator)
+    DB-->>B: OK
+    B-->>P: 204 No Content
+    C->>P: Pubblica proprietà Room (anchor_uuid, map_ref, ecc.)
+    note over C,P: Photon gestisce la stanza Shared Mode in cloud.
 ```
 #### Join Stanza  
 Un utente inserisce il codice stanza per unirsi a una sessione esistente.  
 Photon notifica il backend tramite il webhook `player-joined`, che aggiorna la lista dei partecipanti e ricalcola l’identificativo del leader corrente.
 
-```plantuml
-@startuml
-actor User as U
-participant Client as C
-participant Photon as P
-participant Backend as B
-participant DB as DB
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant C as Client
+    participant P as Photon
+    participant B as Backend
+    participant DB as DB
 
-U -> C: Inserisce codice stanza (join_id)
-C -> P: JoinRoom(room_id)
-P -> B: webhook player-joined (player_id, actor_number)
-B -> DB: Aggiorna participants[], ricalcola leader_id=min(participants[])
-DB --> B: OK
-B --> P: 204 No Content
-note over C: Tutti i client ricevono OnPlayerJoined → aggiornano lista peer.
-C -> C: Calcola min(ActorNumber) → se mio, isLeader=true
-@enduml
+    U->>C: Inserisce codice stanza (join_id)
+    C->>P: JoinRoom(room_id)
+    P->>B: webhook player-joined (player_id, actor_number)
+    B->>DB: Aggiorna participants[], leader_id=min(participants[])
+    DB-->>B: OK
+    B-->>P: 204 No Content
+    note over C: OnPlayerJoined → aggiorna lista peer e leader
+    C->>C: Calcola min(ActorNumber) → se mio, isLeader=true
 ```
 
 #### Cambio Leader  
 Quando un utente lascia la sessione, il backend riceve il webhook `player-left` e ricalcola il nuovo leader basandosi sul peer con `ActorNumber` più basso.  
 I client aggiornano automaticamente il loro stato locale di leadership.
 
-```plantuml
-@startuml
-participant Photon as P
-participant Backend as B
-participant DB as DB
-participant Client1 as C1
-participant Client2 as C2
+```mermaid
+sequenceDiagram
+    participant P as Photon
+    participant B as Backend
+    participant DB as DB
+    participant C1 as Client1
+    participant C2 as Client2
 
-P -> B: webhook player-left (player_id, actor_number)
-B -> DB: Rimuove partecipante, ricalcola leader_id=min(partecipanti rimasti)
-DB --> B: OK
-B --> P: 204 No Content
-
-note over C1,C2: Tutti i peer ricevono OnPlayerLeft → ricalcolano min(ActorNumber)
-C1 -> C1: Se mio ID == min, attiva AutoSave
-C2 -> C2: Se no, disattiva AutoSave
-@enduml
+    P->>B: webhook player-left (player_id, actor_number)
+    B->>DB: Rimuove partecipante, ricalcola leader_id=min(partecipanti rimasti)
+    DB-->>B: OK
+    B-->>P: 204 No Content
+    note over C1,C2: OnPlayerLeft → ricalcolano min(ActorNumber)\nC1 leader attiva AutoSave, C2 disattiva
 ```
 
 #### Autosave Periodico  
 Il peer leader effettua periodicamente un salvataggio automatico (`autosave`) inviando lo snapshot al backend.  
 Il backend valida la leadership e registra lo stato nel database; se la leadership è cambiata, restituisce `409 leader_changed`.
 
-```plantuml
-@startuml
-actor Leader as L
-participant Backend as B
-participant DB as DB
+```mermaid
+sequenceDiagram
+    actor L as Leader
+    participant B as Backend
+    participant DB as DB
 
-loop ogni 5 min
-  L -> B: POST /session/{room_id}/save (kind="auto", JWT leader)
-  alt leader valido
-    B -> DB: INSERT session_saves (kind=auto)
-    DB --> B: OK
-    B --> L: 201 {save_id, snapshot_version}
-  else leader cambiato
-    B --> L: 409 leader_changed
-    note over L: Leader ricalcola e interrompe autosave
-  end
-end
-@enduml
+    loop ogni 5 min
+        L->>B: POST /session/{room_id}/save (auto)
+        alt leader valido
+            B->>DB: INSERT session_saves (auto)
+            DB-->>B: OK
+            B-->>L: 201 {save_id, snapshot_version}
+        else leader cambiato
+            B-->>L: 409 leader_changed
+            note over L: Interrompe autosave e ricalcola leadership
+        end
+    end
 ```
 
 #### Salvataggio Manuale  
 L’utente leader può avviare un salvataggio manuale in uno degli slot disponibili.  
 Il backend controlla l’autorizzazione e persiste i dati della sessione.
 
-```plantuml
-@startuml
-actor User as U
-participant "Client Leader" as C
-participant Backend as B
-participant DB as DB
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant C as Client Leader
+    participant B as Backend
+    participant DB as DB
 
-U -> C: Avvia salvataggio manuale
-C -> B: POST /session/{room_id}/save (kind="manual", slot=n)
-alt leader corrente
-  B -> DB: INSERT session_saves (slot=n)
-  DB --> B: OK
-  B --> C: 201 {save_id}
-else non leader
-  B --> C: 403 Forbidden
-end
-@enduml
+    U->>C: Avvia salvataggio manuale
+    C->>B: POST /session/{room_id}/save (manual, slot=n)
+    alt leader corrente
+        B->>DB: INSERT session_saves (slot=n)
+        DB-->>B: OK
+        B-->>C: 201 {save_id}
+    else non leader
+        B-->>C: 403 Forbidden
+    end
 ```
 
 #### Chiusura Sessione  
 Alla chiusura della stanza, Photon invia il webhook `game-closed`.  
 Il backend aggiorna lo stato della sessione nel database e registra un salvataggio finale automatico.
 
-```plantuml
-@startuml
-participant Photon as P
-participant Backend as B
-participant DB as DB
+```mermaid
+sequenceDiagram
+    participant P as Photon
+    participant B as Backend
+    participant DB as Database
 
-P -> B: webhook game-closed
-B -> DB: UPDATE sessions SET state='closed'
-B -> DB: INSERT autosave finale
-DB --> B: OK
-B --> P: 204 No Content
-@enduml
+    P->>B: webhook game-closed
+    B->>DB: UPDATE sessions SET state='closed'
+    B->>DB: INSERT autosave finale
+    DB-->>B: OK
+    B-->>P: 204 No Content
 ```
 
 #### Visualizzazione Partecipanti  
 Il client può richiedere al backend la lista aggiornata dei partecipanti e l’identificativo del leader corrente per la stanza attiva.
 
-```plantuml
-@startuml
-actor User as U
-participant Client as C
-participant Backend as B
-participant DB as DB
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant C as Client
+    participant B as Backend
+    participant DB as Database
 
-U -> C: Richiede elenco partecipanti
-C -> B: GET /sessions/{room_id}/participants
-B -> DB: SELECT participants[], leader_id FROM sessions WHERE room_id=?
-DB --> B: dati
-B --> C: 200 { participants[], leader_id }
-
-note over C: Client mostra elenco utenti e indica chi è il leader corrente.
-@enduml
+    U->>C: Richiede elenco partecipanti
+    C->>B: GET /sessions/{room_id}/participants
+    B->>DB: SELECT participants[], leader_id
+    DB-->>B: dati
+    B-->>C: 200 { participants[], leader_id }
+    note over C: Mostra elenco utenti e indica il leader corrente
 ```
 
 #### Webhooks Photon → Backend  
 Questo flusso riassume la sequenza completa di webhook generati da Photon (creazione, join, left, chiusura) e come il backend aggiorna di conseguenza lo stato persistente.
 
-```plantuml
-@startuml
-participant Photon as P
-participant Backend as B
-participant DB as DB
+```mermaid
+sequenceDiagram
+    participant P as Photon
+    participant B as Backend
+    participant DB as Database
 
-== Game Created ==
-P -> B: POST /webhooks/photon/game-created
-B -> DB: INSERT sessions(state='active', leader_id=NULL)
+    P->>B: POST /webhooks/photon/game-created
+    B->>DB: INSERT sessions(active, leader_id=NULL)
 
-== Player Joined ==
-P -> B: POST /webhooks/photon/player-joined
-B -> DB: Aggiorna participants[], leader_id=min()
+    P->>B: POST /webhooks/photon/player-joined
+    B->>DB: Aggiorna participants[], leader_id=min()
 
-== Player Left ==
-P -> B: POST /webhooks/photon/player-left
-B -> DB: Rimuove player, leader_id=min()
+    P->>B: POST /webhooks/photon/player-left
+    B->>DB: Rimuove player, leader_id=min()
 
-== Game Closed ==
-P -> B: POST /webhooks/photon/game-closed
-B -> DB: UPDATE sessions SET state='closed'
-B -> DB: INSERT autosave finale
-@enduml
+    P->>B: POST /webhooks/photon/game-closed
+    B->>DB: UPDATE sessions SET state='closed'
+    B->>DB: INSERT autosave finale
 ```
 
 #### Flusso di Errore – Leader Cambiato  
 In caso di mismatch tra il leader identificato dal backend e quello che tenta il salvataggio, viene restituito l’errore `409 leader_changed`, consentendo ai client di riallineare la leadership.
 
-```plantuml
-@startuml
-actor FormerLeader as L
-participant Backend as B
-participant DB as DB
+```mermaid
+sequenceDiagram
+    actor L as FormerLeader
+    participant B as Backend
+    participant DB as Database
 
-L -> B: POST /session/{room_id}/save
-B -> DB: SELECT leader_id FROM sessions
-alt jwt.sub != leader_id
-  B --> L: 409 leader_changed
-  note over L: Aggiorna isLeader=false, interrompe autosave.
-else leader valido
-  B -> DB: INSERT snapshot
-  DB --> B: OK
-  B --> L: 201 Created
-end
-@enduml
+    L->>B: POST /session/{room_id}/save
+    B->>DB: SELECT leader_id FROM sessions
+    alt jwt.sub != leader_id
+        B-->>L: 409 leader_changed
+        note over L: Aggiorna isLeader=false e interrompe autosave
+    else leader valido
+        B->>DB: INSERT snapshot
+        DB-->>B: OK
+        B-->>L: 201 Created
+    end
 ```
 
 ---
@@ -287,10 +269,10 @@ end
 ## Photon Server Mode
 ### System Context Diagram
 
-<img alt="Server Mode C1" src="assets/diagrams/v2/export/c1/structurizr-ifvr-v2-context.svg" width="1024"/>
+<img alt="Server Mode C1" src="assets/diagrams/v2/export/c1/structurizr-ifvr-v2-context.svg" width="10240"/>
 
 ### Container Diagram
-<img alt="Server Mode C2" src="assets/diagrams/v2/export/c2/structurizr-ifvr-v2-containers.svg" width="1024"/>
+<img alt="Server Mode C2" src="assets/diagrams/v2/export/c2/structurizr-ifvr-v2-containers.svg" width="10240"/>
 
 ### Descrizione
 Questa architettura rappresenta l’alternativa alla precedente soluzione in Shared Mode.  
@@ -316,141 +298,131 @@ Ogni diagramma descrive un caso operativo chiave, in cui il backend opera localm
 #### Creazione Stanza
 Rappresenta il flusso di inizializzazione di una nuova sessione gestita dal server Photon.  
 Il backend registra la stanza nel database al momento della creazione, impostandone lo stato attivo.  
-```plantuml
-@startuml
-actor User as U
-participant Client as C
-participant PhotonServer as PS
-participant Backend as B
-participant DB as DB
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant C as Client
+    participant PS as PhotonServer
+    participant B as Backend
+    participant DB as Database
 
-U -> C: Login
-C -> B: POST /auth/login
-B --> C: 200 JWT
-C -> B: POST /sessions (create room metadata)
-B -> PS: CreateRoom request (owner_id, room_id)
-PS -> DB: Store new room metadata via Backend API
-DB --> PS: OK
-PS --> C: Room created (room_id)
-@enduml
-
+    U->>C: Login
+    C->>B: POST /auth/login
+    B-->>C: 200 JWT
+    C->>B: POST /sessions (create room metadata)
+    B->>PS: CreateRoom request (owner_id, room_id)
+    PS->>DB: Store new room metadata via Backend API
+    DB-->>PS: OK
+    PS-->>C: Room created (room_id)
 ```
 
 #### Join Sessione Esistente
 Descrive la procedura con cui un visore si unisce a una stanza già creata nel server Photon.  
 Il backend aggiorna la lista dei partecipanti sulla base delle notifiche di join ricevute.  
-```plantuml
-@startuml
-actor User as U
-participant Client as C
-participant PhotonServer as PS
-participant Backend as B
-participant DB as DB
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant C as Client
+    participant PS as PhotonServer
+    participant B as Backend
+    participant DB as Database
 
-U -> C: Login
-C -> PS: JoinRoom(room_id)
-PS --> C: Join success + current state sync
-PS -> B: POST /webhooks/player-joined
-B -> DB: UPDATE session participants
-@enduml
+    U->>C: Login
+    C->>PS: JoinRoom(room_id)
+    PS-->>C: Join success + state sync
+    PS->>B: POST /webhooks/player-joined
+    B->>DB: UPDATE session participants
 ```
 
 #### Autosave Periodico (Server-Side)
 Il salvataggio automatico non è più avviato dai client ma direttamente dal server Photon.  
 Il backend legge lo stato della room e salva periodicamente uno snapshot nel database.  
-```plantuml
-@startuml
-participant PhotonServer as P
-participant Backend as B
-participant PostgreSQL as DB
+```mermaid
+sequenceDiagram
+    participant P as PhotonServer
+    participant B as Backend
+    participant DB as PostgreSQL
 
-' In Server Mode il salvataggio non parte dal client.
-' Photon invoca periodicamente il backend per consentire un autosave.
-loop ogni N minuti
-  P -> B: Trigger autosave (stato room)
-  B -> P: GET room_state (via API Photon locale)
-  P --> B: room_state (snapshot runtime)
-  B -> DB: INSERT session_saves(kind="auto", payload=room_state)
-  DB --> B: OK
-  B --> P: 201 Created (autosave registrato)
-end
-@enduml
+    loop ogni N minuti
+        P->>B: Trigger autosave (stato room)
+        B->>P: GET room_state (API locale)
+        P-->>B: room_state (snapshot runtime)
+        B->>DB: INSERT session_saves(kind="auto", payload=room_state)
+        DB-->>B: OK
+        B-->>P: 201 Created (autosave registrato)
+    end
 ```
 
 #### Salvataggio Manuale
 Quando il server rileva una richiesta esplicita (es. via API di amministrazione), esegue un salvataggio manuale persistendo lo stato corrente della room.  
-```plantuml
-@startuml
-actor Owner as O
-participant Client as C
-participant Backend as B
-participant DB as DB
+```mermaid
+sequenceDiagram
+    actor O as Owner
+    participant C as Client
+    participant B as Backend
+    participant DB as Database
 
-O -> C: Trigger manual save (slot selection)
-C -> B: POST /session/{room_id}/save (kind="manual", slot, payload)
-B -> DB: INSERT snapshot JSONB
-DB --> B: OK
-B --> C: 201 {save_id, snapshot_version}
-@enduml
+    O->>C: Trigger manual save (slot selection)
+    C->>B: POST /session/{room_id}/save (manual, slot, payload)
+    B->>DB: INSERT snapshot JSONB
+    DB-->>B: OK
+    B-->>C: 201 {save_id, snapshot_version}
 ```
 
 #### Chiusura Sessione
 Alla chiusura della room, Photon invia un webhook al backend.  
 Quest’ultimo esegue automaticamente un autosave finale nello slot dedicato e aggiorna lo stato della sessione a “closed”.  
-```plantuml
-@startuml
-participant PhotonServer as P
-participant Backend as B
-participant PostgreSQL as DB
+```mermaid
+sequenceDiagram
+    participant P as PhotonServer
+    participant B as Backend
+    participant DB as PostgreSQL
 
-' Alla chiusura della room, Photon invia un webhook al backend.
-P -> B: webhook game-closed
-B -> P: GET room_state (ultima istanza)
-P --> B: room_state (stato finale)
-B -> DB: INSERT session_saves(kind="auto", slot="autosave", payload=room_state)
-B -> DB: UPDATE sessions SET state="closed"
-DB --> B: OK
-B --> P: 204 No Content
-note over B: Il backend salva automaticamente lo stato finale\nsenza intervento dei client.
-@enduml
+    P->>B: webhook game-closed
+    B->>P: GET room_state (ultima istanza)
+    P-->>B: room_state (stato finale)
+    B->>DB: INSERT session_saves(kind="auto", slot="autosave", payload=room_state)
+    B->>DB: UPDATE sessions SET state="closed"
+    DB-->>B: OK
+    B-->>P: 204 No Content
+    note over B: Salvataggio finale automatico\nsenza intervento dei client
 ```
 
 #### Setup e Risoluzione Ancore
 Gestione del flusso di creazione e sincronizzazione delle ancore 3D tra i visori, tramite Meta Shared Spatial Anchors.  
-```plantuml
-@startuml
-actor Owner as O
-participant Client_Owner as CO
-participant PhotonServer as PS
-participant Client_Peer as CP
+```mermaid
+sequenceDiagram
+    actor O as Owner
+    participant CO as Client_Owner
+    participant PS as PhotonServer
+    participant CP as Client_Peer
+    participant MC as MetaCloud
 
-CO -> CO: Create Anchor via Meta SDK
-CO -> MetaCloud: Upload Anchor (create)
-MetaCloud --> CO: anchor_uuid
-CO -> PS: Set Room Property anchor_uuid
-PS -> CP: Replicate anchor_uuid property
-CP -> MetaCloud: ResolveAnchor(anchor_uuid)
-MetaCloud --> CP: Aligned spatial frame
-@enduml
+    CO->>CO: Create Anchor via Meta SDK
+    CO->>MC: Upload Anchor (create)
+    MC-->>CO: anchor_uuid
+    CO->>PS: Set Room Property anchor_uuid
+    PS->>CP: Replicate anchor_uuid property
+    CP->>MC: ResolveAnchor(anchor_uuid)
+    MC-->>CP: Aligned spatial frame
 ```
 
 #### Recupero Snapshot
 Descrive la riapertura di una sessione da uno snapshot precedentemente salvato, con caricamento completo dello stato.  
-```plantuml
-@startuml
-participant Backend as B
-participant DB as DB
-participant PhotonServer as PS
-participant Client as C
+```mermaid
+sequenceDiagram
+    participant B as Backend
+    participant DB as Database
+    participant PS as PhotonServer
+    participant C as Client
 
-C -> B: GET /session/{room_id}/saves
-B -> DB: SELECT session_save_index
-DB --> B: {slots, autosave metadata}
-B --> C: 200 SaveIndex
-C -> B: POST /sessions (recreate session from save)
-B -> PS: CreateRoom(room_id, state from snapshot)
-PS --> C: Room active with restored state
-@enduml
+    C->>B: GET /session/{room_id}/saves
+    B->>DB: SELECT session_save_index
+    DB-->>B: {slots, autosave metadata}
+    B-->>C: 200 SaveIndex
+    C->>B: POST /sessions (recreate session from save)
+    B->>PS: CreateRoom(room_id, state from snapshot)
+    PS-->>C: Room active with restored state
 ```
 ---
 
