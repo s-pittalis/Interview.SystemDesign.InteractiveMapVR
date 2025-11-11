@@ -65,10 +65,10 @@ Il sistema prevede:
 ## Photon Shared Mode
 
 ### System Context Diagram
-<img alt="Shared Mode C1" src="assets/diagrams/v3/export/c1/structurizr-interactive-forest-vr-v3-context.svg" width="10240"/>
+<img alt="Shared Mode C1" src="assets/diagrams/v3/export/c1/structurizr-interactive-forest-vr-v3-context.svg" width="1024"/>
 
 ### Container Diagram
-<img alt="Shared Mode C2" src="assets/diagrams/v3/export/c2/structurizr-interactive-forest-vr-v3-containers.svg" width="10240"/>
+<img alt="Shared Mode C2" src="assets/diagrams/v3/export/c2/structurizr-interactive-forest-vr-v3-containers.svg" width="1024"/>
 
 ### Descrizione
 In questa soluzione si è scelto di utilizzare **Photon Fusion** come strumento principale per la gestione della sincronizzazione e dello scambio dati tra i visori.  
@@ -307,10 +307,10 @@ sequenceDiagram
 ## Photon Server Mode
 ### System Context Diagram
 
-<img alt="Server Mode C1" src="assets/diagrams/v2/export/c1/structurizr-ifvr-v2-context.svg" width="10240"/>
+<img alt="Server Mode C1" src="assets/diagrams/v2/export/c1/structurizr-ifvr-v2-context.svg" width="1024"/>
 
 ### Container Diagram
-<img alt="Server Mode C2" src="assets/diagrams/v2/export/c2/structurizr-ifvr-v2-containers.svg" width="10240"/>
+<img alt="Server Mode C2" src="assets/diagrams/v2/export/c2/structurizr-ifvr-v2-containers.svg" width="1024"/>
 
 ### Descrizione
 Questa architettura rappresenta l'alternativa alla precedente soluzione in Shared Mode.  
