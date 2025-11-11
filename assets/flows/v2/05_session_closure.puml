@@ -1,0 +1,17 @@
+@startuml
+title (5) Chiusura Sessione - Photon Server Mode
+
+participant PhotonServer as P
+participant Backend as B
+participant PostgreSQL as DB
+
+' Alla chiusura della room, Photon invia un webhook al backend.
+P -> B: webhook game-closed
+B -> P: GET room_state (ultima istanza)
+P --> B: room_state (stato finale)
+B -> DB: INSERT session_saves(kind="auto", slot="autosave", payload=room_state)
+B -> DB: UPDATE sessions SET state="closed"
+DB --> B: OK
+B --> P: 204 No Content
+note over B: Il backend salva automaticamente lo stato finale\nsenza intervento dei client.
+@enduml

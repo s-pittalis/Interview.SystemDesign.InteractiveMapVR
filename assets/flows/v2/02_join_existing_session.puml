@@ -1,0 +1,14 @@
+@startuml
+title (2) Join Existing Session
+actor User as U
+participant Client as C
+participant PhotonServer as PS
+participant Backend as B
+participant DB as DB
+
+U -> C: Login
+C -> PS: JoinRoom(room_id)
+PS --> C: Join success + current state sync
+PS -> B: POST /webhooks/player-joined
+B -> DB: UPDATE session participants
+@enduml

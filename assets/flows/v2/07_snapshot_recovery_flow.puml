@@ -1,0 +1,15 @@
+@startuml
+title (7) Snapshot Recovery Flow
+participant Backend as B
+participant DB as DB
+participant PhotonServer as PS
+participant Client as C
+
+C -> B: GET /session/{room_id}/saves
+B -> DB: SELECT session_save_index
+DB --> B: {slots, autosave metadata}
+B --> C: 200 SaveIndex
+C -> B: POST /sessions (recreate session from save)
+B -> PS: CreateRoom(room_id, state from snapshot)
+PS --> C: Room active with restored state
+@enduml

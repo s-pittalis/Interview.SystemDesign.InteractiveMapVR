@@ -1,0 +1,13 @@
+@startuml
+title (4) Manual Save by Owner
+actor Owner as O
+participant Client as C
+participant Backend as B
+participant DB as DB
+
+O -> C: Trigger manual save (slot selection)
+C -> B: POST /session/{room_id}/save (kind="manual", slot, payload)
+B -> DB: INSERT snapshot JSONB
+DB --> B: OK
+B --> C: 201 {save_id, snapshot_version}
+@enduml

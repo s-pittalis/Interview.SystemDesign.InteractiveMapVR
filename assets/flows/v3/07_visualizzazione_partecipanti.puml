@@ -1,0 +1,16 @@
+@startuml
+title (7) Visualizzazione Partecipanti e Leader Corrente
+
+actor User as U
+participant Client as C
+participant Backend as B
+participant DB as DB
+
+U -> C: Richiede elenco partecipanti
+C -> B: GET /sessions/{room_id}/participants
+B -> DB: SELECT participants[], leader_id FROM sessions WHERE room_id=?
+DB --> B: dati
+B --> C: 200 { participants[], leader_id }
+
+note over C: Client mostra elenco utenti e indica chi è il leader corrente.
+@enduml

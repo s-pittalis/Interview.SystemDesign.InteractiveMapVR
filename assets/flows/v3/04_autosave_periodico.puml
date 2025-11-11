@@ -1,0 +1,19 @@
+@startuml
+title (4) Autosave Periodico (Leader Deterministico)
+
+actor Leader as L
+participant Backend as B
+participant DB as DB
+
+loop ogni 5 min
+  L -> B: POST /session/{room_id}/save (kind="auto", JWT leader)
+  alt leader valido
+    B -> DB: INSERT session_saves (kind=auto)
+    DB --> B: OK
+    B --> L: 201 {save_id, snapshot_version}
+  else leader cambiato
+    B --> L: 409 leader_changed
+    note over L: Leader ricalcola e interrompe autosave
+  end
+end
+@enduml

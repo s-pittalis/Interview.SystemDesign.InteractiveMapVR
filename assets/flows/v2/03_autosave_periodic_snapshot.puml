@@ -1,0 +1,18 @@
+@startuml
+title (3) Autosave Periodico - Photon Server Mode
+
+participant PhotonServer as P
+participant Backend as B
+participant PostgreSQL as DB
+
+' In Server Mode il salvataggio non parte dal client.
+' Photon invoca periodicamente il backend per consentire un autosave.
+loop ogni N minuti
+  P -> B: Trigger autosave (stato room)
+  B -> P: GET room_state (via API Photon locale)
+  P --> B: room_state (snapshot runtime)
+  B -> DB: INSERT session_saves(kind="auto", payload=room_state)
+  DB --> B: OK
+  B --> P: 201 Created (autosave registrato)
+end
+@enduml

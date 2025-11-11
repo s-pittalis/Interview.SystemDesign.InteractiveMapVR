@@ -1,0 +1,18 @@
+@startuml
+title (9) Flusso di Errore - Leader Cambiato
+
+actor FormerLeader as L
+participant Backend as B
+participant DB as DB
+
+L -> B: POST /session/{room_id}/save
+B -> DB: SELECT leader_id FROM sessions
+alt jwt.sub != leader_id
+  B --> L: 409 leader_changed
+  note over L: Aggiorna isLeader=false, interrompe autosave.
+else leader valido
+  B -> DB: INSERT snapshot
+  DB --> B: OK
+  B --> L: 201 Created
+end
+@enduml

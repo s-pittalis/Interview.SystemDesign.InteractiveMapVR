@@ -1,0 +1,15 @@
+@startuml
+title (6) Anchor Setup and Resolution
+actor Owner as O
+participant Client_Owner as CO
+participant PhotonServer as PS
+participant Client_Peer as CP
+
+CO -> CO: Create Anchor via Meta SDK
+CO -> MetaCloud: Upload Anchor (create)
+MetaCloud --> CO: anchor_uuid
+CO -> PS: Set Room Property anchor_uuid
+PS -> CP: Replicate anchor_uuid property
+CP -> MetaCloud: ResolveAnchor(anchor_uuid)
+MetaCloud --> CP: Aligned spatial frame
+@enduml

@@ -1,0 +1,50 @@
+@startuml
+title <size:24>System Context View: Interactive Forest VR System</size>
+
+set separator none
+left to right direction
+skinparam ranksep 60
+skinparam nodesep 30
+hide stereotype
+
+<style>
+  root {
+    BackgroundColor: #ffffff;
+    FontColor: #444444;
+  }
+  // Element
+  .Element-RWxlbWVudA== {
+    BackgroundColor: #ffffff;
+    LineColor: #444444;
+    LineStyle: 0;
+    LineThickness: 2;
+    FontColor: #444444;
+    FontSize: 24;
+    HorizontalAlignment: center;
+    Shadowing: 0;
+    MaximumWidth: 450;
+  }
+  // Relationship
+  .Relationship-UmVsYXRpb25zaGlw {
+    LineThickness: 2;
+    LineStyle: 10-10;
+    LineColor: #444444;
+    FontColor: #444444;
+    FontSize: 24;
+  }
+</style>
+
+rectangle "==VR User\n<size:16>[Person]</size>\n\nMeta Quest 3 user exploring shared forest scene with other peers." <<Element-RWxlbWVudA==>> as VRUser
+rectangle "==Interactive Forest VR System\n<size:16>[Software System]</size>\n\nMulti-user VR environment using Photon Fusion Shared Mode and deterministic leader election." <<Element-RWxlbWVudA==>> as InteractiveForestVRSystem
+rectangle "==Photon Cloud Relay\n<size:16>[Software System]</size>\n\nRelays real-time state between peers (Shared Mode)." <<Element-RWxlbWVudA==>> as PhotonCloudRelay
+rectangle "==Meta Shared Spatial Anchors\n<size:16>[Software System]</size>\n\nProvides spatial alignment in cloud." <<Element-RWxlbWVudA==>> as MetaSharedSpatialAnchors
+rectangle "==Maps3D.io Service\n<size:16>[Software System]</size>\n\nDelivers static 3D GLTF/OBJ map overlays (no streaming, cost-effective)." <<Element-RWxlbWVudA==>> as Maps3DioService
+rectangle "==Interactive Forest VR Backend\n<size:16>[Software System]</size>\n\nFastAPI service managing authentication, sessions, and persistence." <<Element-RWxlbWVudA==>> as InteractiveForestVRBackend
+
+VRUser --> InteractiveForestVRSystem <<Relationship-UmVsYXRpb25zaGlw>> : "Uses via Meta Quest 3 headset"
+InteractiveForestVRSystem --> PhotonCloudRelay <<Relationship-UmVsYXRpb25zaGlw>> : "Syncs multiplayer state (Shared Mode relay)"
+InteractiveForestVRSystem --> InteractiveForestVRBackend <<Relationship-UmVsYXRpb25zaGlw>> : "Sends REST API calls (login, saves)"
+InteractiveForestVRSystem --> MetaSharedSpatialAnchors <<Relationship-UmVsYXRpb25zaGlw>> : "Resolves and shares spatial anchors"
+InteractiveForestVRSystem --> Maps3DioService <<Relationship-UmVsYXRpb25zaGlw>> : "Loads static 3D map assets for visualization"
+
+@enduml
