@@ -38,7 +38,7 @@ Una volta autenticato, l'utente può decidere come entrare in sessione:
 
 Nel caso di creazione, l'utente può:
 - Avviare una nuova sessione vuota;  
-- Oppure selezionare uno salvataggio precedente, per ripristinare lo stato dei metadati.
+- Oppure selezionare un salvataggio precedente, per ripristinare lo stato dei metadati.
 
 Durante l'inizializzazione della stanza:
 - Viene richiesto di posizionare un anchor nello spazio fisico;  
@@ -56,7 +56,7 @@ All'interno della stanza:
 - I partecipanti possono **manipolare gli oggetti** in tempo reale, visualizzando gli aggiornamenti in modo sincronizzato.  
 
 Il sistema prevede:
-- Fino a tre salvataggi manulai per Room gestiti dal backend;  
+- Fino a tre salvataggi manuali per Room gestiti dal backend;  
 - Un autosave periodico ogni 2–3 minuti, per prevenire la perdita di dati;  
 - La possibilità di ripristinare qualsiasi versione precedente della sessione.  
 
@@ -471,7 +471,7 @@ Questa configurazione rappresenta la prima versione esplorata del sistema, basat
 In questo modello, uno dei visori Meta Quest 3 assumeva il ruolo di host autorevole della stanza, gestendo direttamente lo stato runtime, mentre il backend FastAPI e il database PostgreSQL si occupavano di autenticazione e persistenza.
 
 Nonostante offrisse una latenza estremamente bassa e un'infrastruttura minima, la soluzione è stata scartata per alcune limitazioni strutturali:  
-- La  Room veniva chiusa automaticamente in caso di disconnessione dell'host  
+- La Room veniva chiusa automaticamente in caso di disconnessione dell'host  
 - Non era presente alcun meccanismo di failover deterministico (chi diventasse il nuovo host)
 
 Per questi motivi, pur avendo validato il principio di funzionamento multiutente, questa modalità non è stata considerata adatta per l'architettura finale.
