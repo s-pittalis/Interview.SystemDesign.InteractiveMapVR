@@ -1,0 +1,13 @@
+@startuml
+title (6) Chiusura Sessione (Shared Mode)
+
+participant Photon as P
+participant Backend as B
+participant DB as DB
+
+P -> B: webhook game-closed
+B -> DB: UPDATE sessions SET state='closed'
+B -> DB: INSERT autosave finale
+DB --> B: OK
+B --> P: 204 No Content
+@enduml

@@ -1,0 +1,18 @@
+@startuml
+title (5) Salvataggio Manuale (solo Leader)
+
+actor User as U
+participant "Client Leader" as C
+participant Backend as B
+participant DB as DB
+
+U -> C: Avvia salvataggio manuale
+C -> B: POST /session/{room_id}/save (kind="manual", slot=n)
+alt leader corrente
+  B -> DB: INSERT session_saves (slot=n)
+  DB --> B: OK
+  B --> C: 201 {save_id}
+else non leader
+  B --> C: 403 Forbidden
+end
+@enduml

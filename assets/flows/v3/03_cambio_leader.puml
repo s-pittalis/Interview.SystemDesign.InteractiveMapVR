@@ -1,0 +1,18 @@
+@startuml
+title (3) Cambio Leader Dopo Disconnessione
+
+participant Photon as P
+participant Backend as B
+participant DB as DB
+participant Client1 as C1
+participant Client2 as C2
+
+P -> B: webhook player-left (player_id, actor_number)
+B -> DB: Rimuove partecipante, ricalcola leader_id=min(partecipanti rimasti)
+DB --> B: OK
+B --> P: 204 No Content
+
+note over C1,C2: Tutti i peer ricevono OnPlayerLeft → ricalcolano min(ActorNumber)
+C1 -> C1: Se mio ID == min, attiva AutoSave
+C2 -> C2: Se no, disattiva AutoSave
+@enduml

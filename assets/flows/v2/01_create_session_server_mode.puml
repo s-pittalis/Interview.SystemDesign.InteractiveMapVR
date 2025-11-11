@@ -1,0 +1,17 @@
+@startuml
+title (1) Create Session (Photon Server Mode)
+actor User as U
+participant Client as C
+participant PhotonServer as PS
+participant Backend as B
+participant DB as DB
+
+U -> C: Login
+C -> B: POST /auth/login
+B --> C: 200 JWT
+C -> B: POST /sessions (create room metadata)
+B -> PS: CreateRoom request (owner_id, room_id)
+PS -> DB: Store new room metadata via Backend API
+DB --> PS: OK
+PS --> C: Room created (room_id)
+@enduml

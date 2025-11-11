@@ -1,0 +1,24 @@
+@startuml
+title (8) Sequenza Webhook Photon → Backend (Shared Mode)
+
+participant Photon as P
+participant Backend as B
+participant DB as DB
+
+== Game Created ==
+P -> B: POST /webhooks/photon/game-created
+B -> DB: INSERT sessions(state='active', leader_id=NULL)
+
+== Player Joined ==
+P -> B: POST /webhooks/photon/player-joined
+B -> DB: Aggiorna participants[], leader_id=min()
+
+== Player Left ==
+P -> B: POST /webhooks/photon/player-left
+B -> DB: Rimuove player, leader_id=min()
+
+== Game Closed ==
+P -> B: POST /webhooks/photon/game-closed
+B -> DB: UPDATE sessions SET state='closed'
+B -> DB: INSERT autosave finale
+@enduml

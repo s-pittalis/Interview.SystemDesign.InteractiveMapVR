@@ -1,0 +1,18 @@
+@startuml
+title (2) Join Stanza Esistente (Shared Mode)
+
+actor User as U
+participant Client as C
+participant Photon as P
+participant Backend as B
+participant DB as DB
+
+U -> C: Inserisce codice stanza (join_id)
+C -> P: JoinRoom(room_id)
+P -> B: webhook player-joined (player_id, actor_number)
+B -> DB: Aggiorna participants[], ricalcola leader_id=min(participants[])
+DB --> B: OK
+B --> P: 204 No Content
+note over C: Tutti i client ricevono OnPlayerJoined → aggiornano lista peer.
+C -> C: Calcola min(ActorNumber) → se mio, isLeader=true
+@enduml
