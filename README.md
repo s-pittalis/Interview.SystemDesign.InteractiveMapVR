@@ -113,8 +113,9 @@ Questa sezione illustra i principali flussi operativi del sistema.
 Ogni diagramma rappresenta uno scenario tipico di interazione tra i componenti principali (client, Photon, backend e database), accompagnato da una breve descrizione testuale.
 
 #### Creazione Stanza  
-Questo flusso descrive la fase iniziale in cui un utente autenticato crea una nuova stanza su Photon.  
+Questo flusso descrive la fase iniziale in cui un utente autenticato crea una nuova stanza su Photon.
 Il client effettua il login, richiede la creazione della sessione al backend, e successivamente il backend registra le informazioni nel database in seguito alla notifica `game-created` inviata da Photon.
+Per semplicità nella creazione del grafico, l'Authentication Server ed il Backend coincidono, però nella realtà queste sono due entità diverse (per motivi di cyber security).
 
 ```mermaid
 sequenceDiagram
@@ -139,7 +140,7 @@ sequenceDiagram
 ```
 #### Join Stanza  
 Un utente inserisce il codice stanza per unirsi a una sessione esistente.  
-Photon notifica il backend tramite il webhook `player-joined`, che aggiorna la lista dei partecipanti e ricalcola l'identificativo del leader corrente.
+Photon notifica il backend tramite il webhook `player-joined`, che aggiorna la lista dei partecipanti e ricalcola l'identificativo del leader corrente. SUGG: ALLA FINE DEL GRAFO NON DOVREBBE DARE TUTTI DATI DELLA SESSIONE AL NUOVO UTENTE (I VARI OGGETTI NELLA STANZA, LA LORO DISPOSIZIONE CON LA MATRICE 4X4? ALIAS LO STATO (room_state))
 
 ```mermaid
 sequenceDiagram
@@ -160,7 +161,7 @@ sequenceDiagram
 ```
 
 #### Cambio Leader  
-Quando un utente lascia la sessione, il backend riceve il webhook `player-left` e ricalcola il nuovo leader basandosi sul peer con `ActorNumber` più basso.  
+Quando un utente lascia la sessione, il backend riceve il webhook `player-left` e ricalcola il nuovo leader basandosi sul peer con `ActorNumber` più basso SUGG: (SPIEGA IN SEDE DI COLLOQUI O COMUNQUE A MARGINE DEL PERCHÈ DI QUESTA SCELTA).  
 I client aggiornano automaticamente il loro stato locale di leadership.
 
 ```mermaid
@@ -226,6 +227,7 @@ sequenceDiagram
 #### Chiusura Sessione  
 Alla chiusura della stanza, Photon invia il webhook `game-closed`.  
 Il backend aggiorna lo stato della sessione nel database e registra un salvataggio finale automatico.
+SUGG: NON SAREBBE MEGLIO METTERE ANCHE L'UTENTE TRA GLI 'ATTORI'? MAGARI AGGIORNARE IL GRAFICO DOVE C'È L'ULTIMO UTENTE CHE CLICCA SU 'ABBANDONA' E QUESTO ANDRÀ A TRIGGERARE PHOTON.
 
 ```mermaid
 sequenceDiagram
@@ -241,7 +243,7 @@ sequenceDiagram
 ```
 
 #### Visualizzazione Partecipanti  
-Il client può richiedere al backend la lista aggiornata dei partecipanti e l'identificativo del leader corrente per la stanza attiva.
+Il client può richiedere al backend la lista aggiornata dei partecipanti e l'identificativo del leader corrente per la stanza attiva (SUGG: per motivi di semplificazione, in questo grafico non viene eseguito il check se la stanza appartiene al leader, ma questo importante aspetto di cyber security è stato tenuto conto in fase implementativa).
 
 ```mermaid
 sequenceDiagram
@@ -356,7 +358,7 @@ sequenceDiagram
 
 #### Join Sessione Esistente
 Descrive la procedura con cui un visore si unisce a una stanza già creata nel server Photon.  
-Il backend aggiorna la lista dei partecipanti sulla base delle notifiche di join ricevute.  
+Il backend aggiorna la lista dei partecipanti sulla base delle notifiche di join ricevute.  SUGG: DOPO IL LOGIN HAI TRALASCIATO LE DUE FRECCINE CHE HAI MESSO SOPRA CON IL JWT DI RISPOSTA. MAGARI PER COMPLETEZZA METTILE ANCHE QUI.
 ```mermaid
 sequenceDiagram
     actor U as User
@@ -410,11 +412,12 @@ sequenceDiagram
 #### Chiusura Sessione
 Alla chiusura della room, Photon invia un webhook al backend.  
 Quest'ultimo esegue automaticamente un autosave finale nello slot dedicato e aggiorna lo stato della sessione a “closed”.  
+SUGG: ANCHE QUI PICCOLA CAVOLATA: MAGARI METTI (1 row inserted and 1 row updated) come messaggio di risposta del database
 ```mermaid
 sequenceDiagram
     participant P as PhotonServer
     participant B as Backend
-    participant DB as PostgreSQL
+    participant DB as Database
 
     P->>B: webhook game-closed
     B->>P: GET room_state (ultima istanza)
@@ -446,19 +449,19 @@ sequenceDiagram
 ```
 
 #### Recupero Snapshot
-Descrive la riapertura di una sessione da uno snapshot precedentemente salvato, con caricamento completo dello stato.  
+Descrive la riapertura di una sessione da uno snapshot precedentemente salvato, con caricamento completo dello stato.  SUGG: TI HO MESSO IL CLIENT ALL'INIZIO (PIÙ COMPRENSIBILE)
 ```mermaid
 sequenceDiagram
+    participant C as Client
     participant B as Backend
     participant DB as Database
     participant PS as PhotonServer
-    participant C as Client
 
     C->>B: GET /session/{room_id}/saves
     B->>DB: SELECT session_save_index
     DB-->>B: {slots, autosave metadata}
     B-->>C: 200 SaveIndex
-    C->>B: POST /sessions (recreate session from save)
+    C->>B: POST /sessions (recreate session from save) SUGG: CI VUOLE ANCHE L'ID DELLA SESSIONE CHE VOGLIO 'RICHIAMARE'. OPPURE HO CAPITO MALE IO LA LOGICA SORRY
     B->>PS: CreateRoom(room_id, state from snapshot)
     PS-->>C: Room active with restored state
 ```
