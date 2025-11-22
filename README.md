@@ -115,7 +115,7 @@ Ogni diagramma rappresenta uno scenario tipico di interazione tra i componenti p
 #### Creazione Stanza  
 Questo flusso descrive la fase iniziale in cui un utente autenticato crea una nuova stanza su Photon.
 Il client effettua il login, richiede la creazione della sessione al backend, e successivamente il backend registra le informazioni nel database in seguito alla notifica `game-created` inviata da Photon.
-SUGG: Per semplicità nella creazione del grafico, l'Authentication Server ed il Backend coincidono, però nella realtà queste sono due entità diverse (per motivi di cyber security).
+Per semplicità nella creazione del grafico, l'Authentication Server ed il Backend coincidono, però nella realtà queste sono due entità diverse (per motivi di cyber security).
 
 ```mermaid
 sequenceDiagram
@@ -243,7 +243,7 @@ sequenceDiagram
 ```
 
 #### Visualizzazione Partecipanti  
-Il client può richiedere al backend la lista aggiornata dei partecipanti e l'identificativo del leader corrente per la stanza attiva (SUGG: per motivi di semplificazione, in questo grafico non viene eseguito il check se la stanza appartiene al leader, ma questo importante aspetto di cyber security verrà tenuto conto in fase implementativa).
+Il client può richiedere al backend la lista aggiornata dei partecipanti e l'identificativo del leader corrente per la stanza attiva (SUGG: per motivi di semplificazione, in questo grafico non viene eseguito il check se la stanza appartiene al leader, ma questo importante aspetto di cyber security è stato tenuto conto in fase implementativa).
 
 ```mermaid
 sequenceDiagram
